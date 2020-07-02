@@ -2,3 +2,6 @@
 test.jar
 out
 no-package-test.iml
+package-test.iml
+conf.xml
+test.exe
