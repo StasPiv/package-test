@@ -6,26 +6,26 @@ import org.java_websocket.handshake.ServerHandshake;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EngineSharing {
 
     private static WebSocketClient client;
+    private static OutputStream stdin = null;
 
     public static void main(String[] args) throws IOException, URISyntaxException {
         initWebSocketClient();
         String engineLine;
-        OutputStream stdin = null;
         InputStream stderr = null;
         InputStream stdout = null;
 
-        // launch EXE and grab stdin/stdout and stderr
-//        String uciEnginePath = "/home/stanislav/Downloads/stockfish-11-linux/stockfish-11-linux/Linux/stockfish_20011801_x64";
-
-        System.out.print("Enter path to engine: ");
 
         BufferedReader reader =
                 new BufferedReader(new InputStreamReader(System.in));
-        String uciEnginePath = reader.readLine();
+        String uciEnginePath = "/home/stanislav/Downloads/stockfish-11-linux/stockfish-11-linux/Linux/stockfish_20011801_x64";
+//        System.out.print("Enter path to engine: ");
+//        String uciEnginePath = reader.readLine();
 
         Process process = Runtime.getRuntime ().exec (uciEnginePath);
         stdin = process.getOutputStream ();
@@ -33,13 +33,12 @@ public class EngineSharing {
         stdout = process.getInputStream ();
 
         // "write" the parms into stdin
-        sendCommand(stdin, "setoption name Skill Level value 20");
-        sendCommand(stdin, "setoption name Hash value 1024");
-        sendCommand(stdin, "setoption name Threads value 8");
-        sendCommand(stdin, "setoption name Clear Hash value 1");
-        sendCommand(stdin, "setoption name Contempt value 0");
-        sendCommand(stdin, "setoption name multipv value 2");
-        sendCommand(stdin, "go infinite");
+        sendCommand("setoption name Skill Level value 20");
+        sendCommand("setoption name Hash value 1024");
+        sendCommand("setoption name Threads value 8");
+        sendCommand("setoption name Clear Hash value 1");
+        sendCommand("setoption name Contempt value 0");
+        sendCommand("setoption name multipv value 2");
 
         // clean up if any output in stdout
         BufferedReader brCleanUp =
@@ -48,22 +47,6 @@ public class EngineSharing {
             if (!engineLine.contains("seldepth")) {
                 continue;
             }
-            /*
-             * if (!engineLine.toString().match(/seldepth/)) {
-             *         return;
-             *     }
-             *
-             *     console.log(`stdout: ${engineLine}`);
-             *     let lines = engineLine.toString().split('\n');
-             *     console.log('Lines', lines);
-             *     lines.forEach(oneLine => {
-             *         let data = JSON.stringify({
-             *             direct: direct,
-             *             message: 'Engine output: ' + oneLine
-             *         });
-             *         return oneLine.length > 0 ? socket.send(data) : null;
-             *     });
-             */
 
             System.out.println ("[Stdout] " + engineLine);
             if (client.isOpen()) {
@@ -82,11 +65,19 @@ public class EngineSharing {
         brCleanUp.close();
     }
 
-    private static void sendCommand(OutputStream stdin, String command) throws IOException {
+    private static void sendCommand(String command) {
         String line;
         line = command + "\n";
-        stdin.write(line.getBytes() );
-        stdin.flush();
+        try {
+            stdin.write(line.getBytes() );
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            stdin.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static void sendWsMessage(String message) throws URISyntaxException {
@@ -102,11 +93,39 @@ public class EngineSharing {
             @Override
             public void onOpen(ServerHandshake handshakedata) {
 //                System.out.println ("[Stdout] " + "open connection");
+                try {
+                    sendWsMessage("subscribe.direct.stas");
+                } catch (URISyntaxException e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override
             public void onMessage(String message) {
+                System.out.println ("[Stdout] " + message);
+                if (message.equals("stop engine")) {
+                    sendCommand("stop");
+                    return;
+                }
 
+                // String to be scanned to find the pattern.
+                String pattern = "start-infinite (.+)";
+
+                // Create a Pattern object
+                Pattern r = Pattern.compile(pattern);
+
+                // Now create matcher object.
+                Matcher m = r.matcher(message);
+
+                if (!m.find( )) {
+                    return;
+                }
+
+                String fen = m.group(1);
+
+                sendCommand("stop");
+                sendCommand("position fen " + fen);
+                sendCommand("go infinite");
             }
 
             @Override
