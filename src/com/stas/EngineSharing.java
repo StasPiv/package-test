@@ -23,9 +23,9 @@ public class EngineSharing {
 
         BufferedReader reader =
                 new BufferedReader(new InputStreamReader(System.in));
-        String uciEnginePath = "/home/stanislav/Downloads/stockfish-11-linux/stockfish-11-linux/Linux/stockfish_20011801_x64";
-//        System.out.print("Enter path to engine: ");
-//        String uciEnginePath = reader.readLine();
+//        String uciEnginePath = "/home/stanislav/Downloads/stockfish-11-linux/stockfish-11-linux/Linux/stockfish_20011801_x64";
+        System.out.print("Enter path to engine: ");
+        String uciEnginePath = reader.readLine();
 
         Process process = Runtime.getRuntime ().exec (uciEnginePath);
         stdin = process.getOutputStream ();
